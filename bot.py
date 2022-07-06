@@ -47,7 +47,7 @@ def getbtcusd():
 def send_welcome(message):
     print(message.chat.id)
     print(message.id)
-    #bot.send_message(message.chat.id, "MODIFICAR")
+    bot.send_message(message.chat.id, "MODIFICAR")
 
 
 @sched.scheduled_job('interval',id='send_welcome', minutes = 1)
