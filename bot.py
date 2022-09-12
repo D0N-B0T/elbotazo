@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 import datetime
 from apscheduler.schedulers.blocking import BlockingScheduler
 import secrets
+import json
 
 #define telebot
 bot = telebot.TeleBot(secrets.TELEGRAM_TOKEN)
@@ -17,23 +18,22 @@ sched = BlockingScheduler()
 
 
 
-#get hora
+#get hora y fecha
 def gettime():
-    now = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=-4)
-    return now.strftime("%H:%M")
+    now = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=-3)   
+    return now.strftime("%H:%M %d/%m/%Y")
 
-#get fecha
-def getdate():
-    now = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=-4)
-    return now.strftime("%d/%m/%Y")
 
 #USDCLP
-def getusd():
-    web = "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=usd&tsyms=clp"
-    response = requests.get(web)
-    data = response.json()
-    price = data["RAW"]["USD"]["CLP"]["PRICE"]
-    return price
+def getusd3():
+    headers = {'User-Agent':'...','referer':'https:/...'}
+    url = "https://apps.bolchile.com/api/v1/dolarstatd2"
+    response = requests.get(url, headers=headers, verify=True)
+    if response.status_code == 200:
+        data = json.loads(response.text)
+        price = data[0]['cp']
+        hp = data[0]['hp']
+        return str(price) + " (" + str(hp) + ")"
 
 #BTCUSD
 def getbtcusd():
@@ -41,29 +41,35 @@ def getbtcusd():
     data = response.json()
     return data['bpi']['USD']['rate']
 
+def geteth():
+    response = requests.get('https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD')
+    data = response.json()
+    return data['USD']
+
+def getlunc():
+    response = requests.get('https://min-api.cryptocompare.com/data/price?fsym=LUNA&tsyms=USD')
+    data = response.json()
+    return data['USD']
+
 
 #add start command
 @bot.message_handler(commands=['ids'])
 def send_welcome(message):
     print(message.chat.id)
     print(message.id)
-    bot.send_message(message.chat.id, "MODIFICAR")
+    #bot.send_message(message.chat.id, "MODIFICAR")
 
 
 @sched.scheduled_job('interval',id='send_welcome', minutes = 1)
-def send_welcome():
+def updateMensaje():
     bot.edit_message_text(
-        chat_id=c_id,
-        text="Precio del dolar: $" +
-        str(getusd()) +
-        "\nPrecio del Bitcoin: $" +
-        str(getbtcusd()) +
-        "\n\n" +
-        "Ultima actualizacion: " +
-        str(gettime()) +
-        " | " +
-        str(getdate()),
-        message_id=m_id)
+        chat_id=c_id, 
+        text="Precio del dolar: $" + str(getusd3()) + 
+        "\n\nPrecio del Bitcoin: $" + str(getbtcusd()) + 
+        "\nPrecio de ETH: $" + str(geteth()) +
+        "\nPrecio de LUNC: $" + str(getlunc()) +
+        "\n\n" + 
+        "Ultima actualizacion: " + str(gettime()), message_id=m_id)        
 
 
 
@@ -73,3 +79,10 @@ sched.start()
 
 #initialize the bot
 #bot.polling()
+
+
+
+
+
+
+
